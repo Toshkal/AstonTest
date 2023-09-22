@@ -48,7 +48,6 @@ public class AccountServiceImpl implements AccountService {
         }
         Account account = Account.builder().accountNumber(generateAccountNumber()).name(accountInfo.getName())
                 .balance(accountInfo.getBalance()).pinCode(BCrypt.hashpw(accountPinCode, BCrypt.gensalt())).build();
-        account.editBalance(accountInfo.getBalance());
 
         return accountRepository.save(account);
     }

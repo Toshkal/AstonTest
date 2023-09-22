@@ -8,6 +8,5 @@ public class TestAston {
 
     public static void main(String[] args) {
         SpringApplication.run(TestAston.class, args);
-        throw new IllegalStateException("LOX");
     }
 }

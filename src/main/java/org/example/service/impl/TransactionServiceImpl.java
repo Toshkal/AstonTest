@@ -51,7 +51,7 @@ public class TransactionServiceImpl implements TransactionService {
         if (request.getType().equals(TransactionType.TRANSFER)) {
             Account accountTo = accountService.getByAccountNumber(request.getAccountToNumber());
             transactions.setAccountToNumber(accountTo.getAccountNumber());
-            accountTo.editBalance(amount.abs());
+            accountTo.editBalance(request.getAmount().abs());
             accountService.update(accountTo);
         }
         accountService.update(accountFrom);

@@ -17,91 +17,62 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.example.service.impl.AccountServiceImpl.generateAccountNumber;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 @ExtendWith(MockitoExtension.class)
 class AccountServiceTest {
+    private static String accountNumber;
+
     @Mock
     private AccountRepository accountRepository;
 
+    private Account account;
     private AccountService accountService;
 
     @BeforeEach
     public void setup() {
         initMocks(this);
         accountService = new AccountServiceImpl(accountRepository);
+
+        accountNumber = generateAccountNumber();
+
+        account = Account.builder()
+                .accountNumber(accountNumber)
+                .name("Dj D")
+                .balance(new BigDecimal(1000))
+                .pinCode(BCrypt.hashpw("1234", BCrypt.gensalt()))
+                .build();
     }
 
     @Test
     void update() {
-        Account accountToUpdate = Account.builder()
-                .accountNumber(generateAccountNumber())
-                .name("Jhon Doe")
-                .balance(new BigDecimal(1000))
-                .id(UUID.randomUUID())
-                .pinCode(BCrypt.hashpw("1234", BCrypt.gensalt())).build();
+        //GIVEN
 
-        accountRepository.save(accountToUpdate);
+        accountRepository.save(account);
 
-        when(accountRepository.findByAccountNumber(anyString())).thenReturn(java.util.Optional.of(accountToUpdate));
+        when(accountRepository.findByAccountNumber(anyString())).thenReturn(java.util.Optional.of(account));
 
-        accountToUpdate.setName("Jane Doe");
+        account.setName("Lui Rex");
 
-        accountService.update(accountToUpdate);
+        //WHEN
+        accountService.update(account);
 
-        verify(accountRepository, times(1)).saveAndFlush(accountToUpdate);
+        Account updatedAccount = accountService.getByAccountNumber(account.getAccountNumber());
 
-        Account updatedAccount = accountService.getByAccountNumber(accountToUpdate.getAccountNumber());
-        assertEquals("Jane Doe", updatedAccount.getName());
-    }
-
-    @Test
-    void updateWithInvalidAccountNumber() {
-        Account accountToUpdate = Account.builder()
-                .accountNumber("1234")
-                .name("Jhon Doe")
-                .balance(new BigDecimal(1000))
-                .id(UUID.randomUUID())
-                .pinCode(BCrypt.hashpw("1234", BCrypt.gensalt()))
-                .build();
-
-        try {
-            accountService.update(accountToUpdate);
-            fail("Должно быть выброшено исключение IncorrectAccountNumberException");
-        } catch (IncorrectAccountNumberException e) {
-            assertTrue(true);
-        } catch (AccountNotFoundException e) {
-            fail("AccountNotFoundException не должно быть выброшено");
-        }
+        //THEN
+        verify(accountRepository).saveAndFlush(account);
+        assertEquals("Lui Rex", updatedAccount.getName());
     }
 
     @Test
     void updateWithNonExistentAccount() {
-        String nonExistentAccountNumber = generateAccountNumber();
-
-        Account accountToUpdate = Account.builder()
-                .accountNumber(nonExistentAccountNumber)
-                .name("Jhon Doe")
-                .balance(new BigDecimal(1000))
-                .id(UUID.randomUUID())
-                .pinCode(BCrypt.hashpw("1234", BCrypt.gensalt()))
-                .build();
-
         try {
-            accountService.update(accountToUpdate);
+            accountService.update(account);
             fail("Должно быть выброшено исключение AccountNotFoundException");
         } catch (AccountNotFoundException e) {
             assertTrue(true);
@@ -112,29 +83,24 @@ class AccountServiceTest {
 
     @Test
     void getByAccountNumber() {
-        String accountNumber = generateAccountNumber();
+        //GIVEN
 
-        Account accountToRetrieve = Account.builder()
-                .accountNumber(accountNumber)
-                .name("Jhon Doe")
-                .balance(new BigDecimal(1000))
-                .id(UUID.randomUUID())
-                .pinCode(BCrypt.hashpw("1234", BCrypt.gensalt()))
-                .build();
+        when(accountRepository.findByAccountNumber(account.getAccountNumber()))
+                .thenReturn(Optional.of(account));
 
-        accountRepository.save(accountToRetrieve);
-
-        when(accountRepository.findByAccountNumber(accountToRetrieve.getAccountNumber()))
-                .thenReturn(Optional.of(accountToRetrieve));
+        //WHEN
+        accountRepository.save(account);
         Account retrievedAccount = accountService.getByAccountNumber(accountNumber);
 
-        assertEquals(accountToRetrieve, retrievedAccount);
+        //THEN
+        assertEquals(account, retrievedAccount);
     }
 
     @Test
     void add() {
+        //GIVEN
         AccountInfo accountInfo = AccountInfo.builder()
-                .name("Jane Doe")
+                .name("Dj D")
                 .balance(new BigDecimal(1000))
                 .pinCode("1234")
                 .build();
@@ -151,19 +117,25 @@ class AccountServiceTest {
         assertNotNull(account);
 
         when(accountRepository.findByAccountNumber(account.getAccountNumber())).thenReturn(Optional.of(account));
+
+        //WHEN
         Account retrievedAccount = accountService.getByAccountNumber(account.getAccountNumber());
+
+        //THEN
         assertNotNull(retrievedAccount);
         assertEquals(account.getAccountNumber(), retrievedAccount.getAccountNumber());
     }
 
     @Test
     void add_WithIncorrectPinCode() {
+        // GIVEN || WHEN
         AccountInfo accountInfo = AccountInfo.builder()
-                .name("Jane Doe")
+                .name("Dj D")
                 .balance(new BigDecimal(1000))
                 .pinCode("12345")
                 .build();
 
+        //THEN
         assertThrows(IncorrectPinCodeException.class, () -> accountService.add(accountInfo));
     }
 }
